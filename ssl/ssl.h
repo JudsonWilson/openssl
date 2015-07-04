@@ -843,6 +843,14 @@ void SSL_set_msg_callback(SSL *ssl,
 # define SSL_CTX_set_msg_callback_arg(ctx, arg) SSL_CTX_ctrl((ctx), SSL_CTRL_SET_MSG_CALLBACK_ARG, 0, (arg))
 # define SSL_set_msg_callback_arg(ssl, arg) SSL_ctrl((ssl), SSL_CTRL_SET_MSG_CALLBACK_ARG, 0, (arg))
 
+/* SSL_CTX_set_keylog_bio sets configures all SSL objects attached to |ctx| to
+ * log session material to |keylog_bio|. This is intended for debugging use with
+ * tools like Wireshark. |ctx| takes ownership of |keylog_bio|.
+ *
+ * The format is described in
+ * https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. */
+void SSL_CTX_set_keylog_bio(SSL_CTX *ctx, BIO *keylog_bio);
+
 # ifndef OPENSSL_NO_SRP
 
 #  ifndef OPENSSL_NO_SSL_INTERN
@@ -1182,6 +1190,11 @@ struct ssl_ctx_st {
     unsigned char *tlsext_ellipticcurvelist;
 #   endif                       /* OPENSSL_NO_EC */
 #  endif
+
+    /* If not NULL, session key material will be logged to this BIO for
+     * debugging purposes. The format matches NSS's and is readable by
+     * Wireshark. */
+    BIO *keylog_bio;
 };
 
 # endif
@@ -2740,6 +2753,8 @@ void ERR_load_SSL_strings(void);
 # define SSL_F_SSL_CREATE_CIPHER_LIST                     166
 # define SSL_F_SSL_CTRL                                   232
 # define SSL_F_SSL_CTX_CHECK_PRIVATE_KEY                  168
+# define SSL_F_SSL_CTX_LOG_MASTER_SECRET                  341
+# define SSL_F_SSL_CTX_LOG_RSA_CLIENT_KEY_EXCHANGE        342
 # define SSL_F_SSL_CTX_MAKE_PROFILES                      309
 # define SSL_F_SSL_CTX_NEW                                169
 # define SSL_F_SSL_CTX_SET_CIPHER_LIST                    269
