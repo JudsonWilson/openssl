@@ -388,7 +388,7 @@ int ssl3_connect(SSL *s)
             if (s->s3->tmp.cert_req)
                 s->state = SSL3_ST_CW_CERT_A;
             else
-                s->state = SSL3_ST_CW_KEY_EXCH_A;
+                s->state = SSL3_ST_CW_IOTLENSE_CLNT_RAND_A;
             s->init_num = 0;
 
             break;
@@ -400,6 +400,29 @@ int ssl3_connect(SSL *s)
             ret = ssl3_send_client_certificate(s);
             if (ret <= 0)
                 goto end;
+            s->state = SSL3_ST_CW_IOTLENSE_CLNT_RAND_A;
+            s->init_num = 0;
+            break;
+
+        case SSL3_ST_CW_IOTLENSE_CLNT_RAND_A:
+        case SSL3_ST_CW_IOTLENSE_CLNT_RAND_B:
+
+// TODO this isn't always on?
+            if (s->state == SSL3_ST_CW_IOTLENSE_CLNT_RAND_A) {
+                unsigned char *p;
+                int n = 0;
+                p = ssl_handshake_start(s);
+
+                n = sprintf((char *)p+2, "Hello World!\n");
+                s2n(n, p); // Put the length as a 2-byte prefix
+                n+= 2;
+
+                ssl_set_handshake_header(s, SSL3_MT_IOTLENSE_CLNT_RAND, n);
+                s->state = SSL3_ST_CW_IOTLENSE_CLNT_RAND_B;
+            }
+            if (0 >= ssl_do_write(s))
+                goto end;
+
             s->state = SSL3_ST_CW_KEY_EXCH_A;
             s->init_num = 0;
             break;

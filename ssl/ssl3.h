@@ -663,6 +663,9 @@ typedef struct ssl3_state_st {
 # define SSL3_ST_CW_CERT_B               (0x171|SSL_ST_CONNECT)
 # define SSL3_ST_CW_CERT_C               (0x172|SSL_ST_CONNECT)
 # define SSL3_ST_CW_CERT_D               (0x173|SSL_ST_CONNECT)
+// Before key exchange:
+# define SSL3_ST_CW_IOTLENSE_CLNT_RAND_A (0x176|SSL_ST_CONNECT)
+# define SSL3_ST_CW_IOTLENSE_CLNT_RAND_B (0x177|SSL_ST_CONNECT)
 # define SSL3_ST_CW_KEY_EXCH_A           (0x180|SSL_ST_CONNECT)
 # define SSL3_ST_CW_KEY_EXCH_B           (0x181|SSL_ST_CONNECT)
 # define SSL3_ST_CW_CERT_VRFY_A          (0x190|SSL_ST_CONNECT)
@@ -717,6 +720,11 @@ typedef struct ssl3_state_st {
 /* read from client */
 # define SSL3_ST_SR_CERT_A               (0x180|SSL_ST_ACCEPT)
 # define SSL3_ST_SR_CERT_B               (0x181|SSL_ST_ACCEPT)
+
+// Do before key exchange
+# define SSL3_ST_SR_IOTLENSE_CLNT_RAND_A (0x185|SSL_ST_ACCEPT)
+# define SSL3_ST_SR_IOTLENSE_CLNT_RAND_B (0x186|SSL_ST_ACCEPT)
+
 # define SSL3_ST_SR_KEY_EXCH_A           (0x190|SSL_ST_ACCEPT)
 # define SSL3_ST_SR_KEY_EXCH_B           (0x191|SSL_ST_ACCEPT)
 # define SSL3_ST_SR_CERT_VRFY_A          (0x1A0|SSL_ST_ACCEPT)
@@ -751,6 +759,9 @@ typedef struct ssl3_state_st {
 # define SSL3_MT_CLIENT_KEY_EXCHANGE             16
 # define SSL3_MT_FINISHED                        20
 # define SSL3_MT_CERTIFICATE_STATUS              22
+
+# define SSL3_MT_IOTLENSE_CLNT_RAND              58
+
 # ifndef OPENSSL_NO_NEXTPROTONEG
 #  define SSL3_MT_NEXT_PROTO                      67
 # endif

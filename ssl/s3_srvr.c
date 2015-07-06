@@ -586,8 +586,45 @@ int ssl3_accept(SSL *s)
                     goto end;
             }
             s->init_num = 0;
-            s->state = SSL3_ST_SR_KEY_EXCH_A;
+            s->state = SSL3_ST_SR_IOTLENSE_CLNT_RAND_A;
             break;
+
+/////////////////////////////////////////////////////////////////
+
+        case SSL3_ST_SR_IOTLENSE_CLNT_RAND_A:
+        case SSL3_ST_SR_IOTLENSE_CLNT_RAND_B:
+        {
+            int ok;
+            long n;
+            long clnt_rand_len;
+            const unsigned char *p;
+
+            /* See the payload format below */
+            n = s->method->ssl_get_message(s,
+                                           SSL3_ST_SR_IOTLENSE_CLNT_RAND_A,
+                                           SSL3_ST_SR_IOTLENSE_CLNT_RAND_B,
+                                           SSL3_MT_IOTLENSE_CLNT_RAND, 514, &ok);
+
+            if (!ok)  //??? XXX
+                goto end;  // ??? XXX
+
+            p = (unsigned char *)s->init_msg;
+
+            if (n < 2)
+                goto end;
+            n2s(p, clnt_rand_len);
+            if (n < clnt_rand_len) {
+                printf("IOTLENSE_CLNT_RAND error! n = %ld, clnt_rnd_len = %ld\n", 0xFFFF & n, clnt_rand_len);
+                goto end;
+            }
+
+            printf("IOTLENSE_CLNT_RAND message: %.*s\n", (int)n, p);
+
+            s->state = SSL3_ST_SR_KEY_EXCH_A;
+            s->init_num = 0;
+            break;
+        }
+/////////////////////////////////////////////////////////////////
 
         case SSL3_ST_SR_KEY_EXCH_A:
         case SSL3_ST_SR_KEY_EXCH_B:
