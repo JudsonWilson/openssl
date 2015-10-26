@@ -136,6 +136,31 @@ static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
                          unsigned int len, int create_empty_fragment);
 static int ssl3_get_record(SSL *s);
 
+
+/* Jud
+ * Figure: Read Buffering Model:
+ *
+ * Given SSL s, let rb := s->s3->rbuf
+ * below: "d" represents data, "-" is ignored memory
+ *
+ *             align    packet     "left"
+ * buffer rb: |-----|dddddddddddd|dddddddd|----------------------|
+ *            .     .            .        .
+ *            |     |            |        +- rb->buf + offset + length
+ *            |     |            +- rb->buff + offset
+ *            |     |                 = s->packet + s->packet_length
+ *            |     +- s->packet = buffer + align
+ *            +- rb->buff
+ */
+
+/* Jud: XXX
+ * Read at least n bytes of data into s->packet, up to max bytes total if
+ * efficient to do so (TODO which you would do once the header is received
+ * and you know the appropriate length?) If extend == 0, this is a new packet
+ * so reset s->packet, etc., otherwise we are extending an existing packet.
+ * Maintains the "Read Buffering Model" above.
+ * TODO: Maybe just update the note below to be more coherent.
+ */
 int ssl3_read_n(SSL *s, int n, int max, int extend)
 {
     /*
@@ -158,8 +183,13 @@ int ssl3_read_n(SSL *s, int n, int max, int extend)
         if (!ssl3_setup_read_buffer(s))
             return -1;
 
-    left = rb->left;
+    left = rb->left; /* Jud: bytes after offset in buffer, left to consume */
+
 #if defined(SSL3_ALIGN_PAYLOAD) && SSL3_ALIGN_PAYLOAD!=0
+    /*
+     * Jud: Calculate initial amount of non-negative offset required for first
+     * byte of body (not header) to land on an aligned address.
+     */
     align = (long)rb->buf + SSL3_RT_HEADER_LENGTH;
     align = (-align) & (SSL3_ALIGN_PAYLOAD - 1);
 #endif
@@ -172,6 +202,8 @@ int ssl3_read_n(SSL *s, int n, int max, int extend)
             /*
              * check if next packet length is large enough to justify payload
              * alignment...
+             * Jud: disregards the amount of data actually there in deciding,
+             *      which seems dumb if all the data is already there.
              */
             pkt = rb->buf + rb->offset;
             if (pkt[0] == SSL3_RT_APPLICATION_DATA
@@ -192,7 +224,7 @@ int ssl3_read_n(SSL *s, int n, int max, int extend)
         /* ... now we can act as if 'extend' was set */
     }
 
-    /*
+    /* Jud: ??? XXX
      * For DTLS/UDP reads should not span multiple packets because the read
      * operation returns the whole packet at once (as long as it fits into
      * the buffer).
@@ -263,6 +295,7 @@ int ssl3_read_n(SSL *s, int n, int max, int extend)
             if (s->mode & SSL_MODE_RELEASE_BUFFERS && !SSL_IS_DTLS(s))
                 if (len + left == 0)
                     ssl3_release_read_buffer(s);
+            // Jud: TODO is s->rwstate OK?
             return (i);
         }
         left += i;
@@ -617,9 +650,10 @@ int ssl3_do_compress(SSL *ssl)
     return (1);
 }
 
-/*
- * Call this to write data in records of type 'type' It will return <= 0 if
- * not all data has been sent or non-blocking IO.
+/* Jud: TODO
+ * Call this to write data into records of type 'type' and transmit it all
+ * on the wire. It will split the data into maximum-sized records if needed.
+ * It will return <= 0 if not all data has been sent or non-blocking IO.
  */
 int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
 {
@@ -809,9 +843,12 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
         return tot;
     }
 
+    /* Jud XXX goal: keep increasing total until it equals len
+     * &buf[tot] = start of the record to send
+     */
     n = (len - tot);
     for (;;) {
-        if (n > s->max_send_fragment)
+        if (n > s->max_send_fragment) /* Jud XXX Max record size? what if i isn't nw after do_ssl3_write below? */
             nw = s->max_send_fragment;
         else
             nw = n;
@@ -843,6 +880,28 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
         tot += i;
     }
 }
+
+
+/*
+ * Jud:
+ * Writes input data into an encrypted record, then calls ssl3_write_pending
+ * to send it out.
+ *
+ * create_empty_fragment is a hack for putting empty fragment records before
+ * data records to fix a CBC encryption issue.
+ *
+ * The raw encrypted record, ready for the wire, is stored in s->s3->wbuf.
+ * offset and left describe the subarray that still needs to hit the wire.
+ *
+ * Info about the record, and pointers to raw data in s->s3->wbuf are stored
+ * in s->s3->wrec.
+ *
+ * Copies of check data for pending retries stored in:
+    s->s3->wpend_tot = len;
+    s->s3->wpend_buf = buf;
+    s->s3->wpend_type = type;
+    s->s3->wpend_ret = len;
+ */
 
 static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
                          unsigned int len, int create_empty_fragment)
@@ -1070,6 +1129,18 @@ static int do_ssl3_write(SSL *s, int type, const unsigned char *buf,
  err:
     return -1;
 }
+
+
+/* Jud XXX
+ *
+ *   the "left" area is what has been cleared to go out the BIO.
+ *
+ *     left
+ *  |dddddddddddddd|
+ *  .              .
+ *  |              +- offset + left
+ *  +- ...offset
+ */
 
 /* if s->s3->wbuf.left != 0, we need to call this */
 int ssl3_write_pending(SSL *s, int type, const unsigned char *buf,
