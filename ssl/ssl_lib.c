@@ -3553,7 +3553,8 @@ int ssl_ctx_log_rsa_client_key_exchange(SSL_CTX *ctx,
 
 int ssl_ctx_log_master_secret(SSL_CTX *ctx,
     const uint8_t *client_random, size_t client_random_len,
-    const uint8_t *master, size_t master_len)
+    const uint8_t *master, size_t master_len,
+    const uint8_t *key_block, size_t key_block_len)
 {
     BIO *bio = ctx->keylog_bio;
     char *out = NULL;
@@ -3570,6 +3571,7 @@ int ssl_ctx_log_master_secret(SSL_CTX *ctx,
     }
 
     out_len = 14 + 32*2 + 1 + master_len*2 + 1;
+    out_len += 24 + 32*2 + 1 + key_block_len*2 + 1;
     if (!(out = OPENSSL_malloc(out_len+1)))
         return 0;
 
@@ -3579,6 +3581,11 @@ int ssl_ctx_log_master_secret(SSL_CTX *ctx,
     strcat_hex(out, master, master_len);
     strcat(out, "\n");
 
+    strcat(out, "CLIENT_RANDOM:KEY_BLOCK ");
+    strcat_hex(out, client_random, 32);
+    strcat(out, " ");
+    strcat_hex(out, key_block, key_block_len);
+    strcat(out, "\n");
     CRYPTO_w_lock(CRYPTO_LOCK_SSL_CTX);
     ret = BIO_write(bio, out, out_len) >= 0 && BIO_flush(bio);
     CRYPTO_w_unlock(CRYPTO_LOCK_SSL_CTX);

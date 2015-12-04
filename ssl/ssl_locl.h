@@ -1414,9 +1414,10 @@ int ssl_ctx_log_rsa_client_key_exchange(SSL_CTX *ctx,
 /* ssl_ctx_log_master_secret logs |master| to |ctx|, if logging is enabled. It
  * returns one on success and zero on failure. The entry is identified by
  * |client_random|. */
-int ssl_ctx_log_master_secret(SSL_CTX *ctx,
-	const uint8_t *client_random, size_t client_random_len,
-	const uint8_t *master, size_t master_len);
+int sl_ctx_log_master_secret(SSL_CTX *ctx,
+        const uint8_t *client_random, size_t client_random_len,
+        const uint8_t *master, size_t master_len,
+        const uint8_t *key_block, size_t key_block_len);
 
 EVP_MD_CTX *ssl_replace_hash(EVP_MD_CTX **hash, const EVP_MD *md);
 void ssl_clear_hash_ctx(EVP_MD_CTX **hash);
