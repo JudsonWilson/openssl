@@ -2024,6 +2024,12 @@ int MAIN(int argc, char **argv)
                 SSL_renegotiate(con);
                 cbuf_len = 0;
             }
+
+            if ((!c_ign_eof) && (cbuf[0] == 'S')) {
+                BIO_printf(bio_err, "RESUMING\n");
+                SSL_renegotiate_abbreviated(con);
+                cbuf_len = 0;
+            }
 #ifndef OPENSSL_NO_HEARTBEATS
             else if ((!c_ign_eof) && (cbuf[0] == 'B')) {
                 BIO_printf(bio_err, "HEARTBEATING\n");
