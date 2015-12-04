@@ -2054,7 +2054,61 @@ int MAIN(int argc, char **argv)
  shut:
     if (in_init)
         print_stuff(bio_c_out, con, full_log);
-    SSL_shutdown(con);
+    BIO_printf(bio_c_out, "beginning shutdown...\n");
+    int r = 0;
+    // Attempt to get a clean shutdown.
+    // Currently doesn't time out, will loop until it gets it or the
+    // connection dies.
+    do {
+        r = SSL_shutdown(con);
+        BIO_printf(bio_c_out, "SSL_shutdown -> %d\n", r);
+        // The following is a quick and dirty attempt at error handling.
+        // Mostly copied from the code above.
+        if (r >= 0)
+            continue;
+        switch (SSL_get_error(con, r)) {
+        case SSL_ERROR_NONE:
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            BIO_printf(bio_c_out, "read W BLOCK\n");
+            FD_ZERO(&readfds);
+            FD_ZERO(&writefds);
+            openssl_fdset(SSL_get_fd(con), &readfds);
+            openssl_fdset(SSL_get_fd(con), &writefds);
+            i = select(width, (void *)&readfds, (void *)&writefds,
+                       NULL, timeoutp);
+            break;
+        case SSL_ERROR_WANT_READ:
+            BIO_printf(bio_c_out, "read R BLOCK\n");
+            FD_ZERO(&readfds);
+            FD_ZERO(&writefds);
+            openssl_fdset(SSL_get_fd(con), &readfds);
+            openssl_fdset(SSL_get_fd(con), &writefds);
+            i = select(width, (void *)&readfds, (void *)&writefds,
+                       NULL, timeoutp);
+            break;
+        case SSL_ERROR_WANT_X509_LOOKUP:
+            BIO_printf(bio_c_out, "read X BLOCK ??\n");
+            break;
+        case SSL_ERROR_SYSCALL:
+            ret = get_last_socket_error();
+            if (c_brief)
+                BIO_puts(bio_err, "CONNECTION CLOSED BY SERVER\n");
+            else
+                BIO_printf(bio_err, "read:errno=%d\n", ret);
+            goto shut2;
+        case SSL_ERROR_ZERO_RETURN:
+            BIO_printf(bio_c_out, "closed\n");
+            ret = 0;
+            goto shut2;
+        case SSL_ERROR_SSL:
+            ERR_print_errors(bio_err);
+            goto shut2;
+            /* break; */
+        }
+    } while (r < 1);
+    BIO_printf(bio_c_out, "shutdown cleanly\n");
+ shut2:
     SHUTDOWN(SSL_get_fd(con));
  end:
     if (con != NULL) {
