@@ -1374,6 +1374,13 @@ int MAIN(int argc, char **argv)
 # endif
 #endif
 
+    BIO *keylog_bio = BIO_new_file("keylog.txt", "a+");
+    if (!keylog_bio) {
+        fprintf(stderr, "BIO problem\n");
+    }
+    else
+        SSL_CTX_set_keylog_bio(ctx, keylog_bio);
+
     con = SSL_new(ctx);
     if (sess_in) {
         SSL_SESSION *sess;
