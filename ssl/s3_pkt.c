@@ -708,7 +708,8 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
 
     /*
      * first check if there is a SSL3_BUFFER still being written out.  This
-     * will happen with non blocking IO
+     * will happen with non blocking IO. Write it all out, or return with
+     * an error.
      */
     if (wb->left != 0) {
         i = ssl3_write_pending(s, type, &buf[tot], s->s3->wpend_tot);

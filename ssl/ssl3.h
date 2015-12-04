@@ -634,7 +634,10 @@ typedef struct ssl3_state_st {
 
 /* SSLv3 */
 /*
- * client
+ * client states
+ *   ST = STate
+ *   CR = Client Read
+ *   CW = Client Write
  */
 /* extra state */
 # define SSL3_ST_CW_FLUSH                (0x100|SSL_ST_CONNECT)
@@ -685,7 +688,12 @@ typedef struct ssl3_state_st {
 # define SSL3_ST_CR_CERT_STATUS_A        (0x1F0|SSL_ST_CONNECT)
 # define SSL3_ST_CR_CERT_STATUS_B        (0x1F1|SSL_ST_CONNECT)
 
-/* server */
+/*
+ * server states
+ *   ST = STate
+ *   SR = Server Read
+ *   SW = Server Write
+ */
 /* extra state */
 # define SSL3_ST_SW_FLUSH                (0x100|SSL_ST_ACCEPT)
 # ifndef OPENSSL_NO_SCTP
@@ -739,6 +747,7 @@ typedef struct ssl3_state_st {
 # define SSL3_ST_SW_CERT_STATUS_A        (0x200|SSL_ST_ACCEPT)
 # define SSL3_ST_SW_CERT_STATUS_B        (0x201|SSL_ST_ACCEPT)
 
+/* Message Types */
 # define SSL3_MT_HELLO_REQUEST                   0
 # define SSL3_MT_CLIENT_HELLO                    1
 # define SSL3_MT_SERVER_HELLO                    2
