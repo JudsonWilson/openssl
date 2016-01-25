@@ -3641,6 +3641,18 @@ int SSL_is_server(SSL *s)
     return s->server;
 }
 
+void SSL_set_new_key_block_callback(SSL *s,
+                                    void (*cb)(void *args,
+                                               const void * key_block,
+                                               int key_block_len,
+                                               const void * client_rand,
+                                               int client_rand_len),
+                                    void *cb_args)
+{
+    s->new_key_block_cb = cb;
+    s->new_key_block_cb_args = cb_args;
+}
+
 #if defined(_WINDLL) && defined(OPENSSL_SYS_WIN16)
 # include "../crypto/bio/bss_file.c"
 #endif

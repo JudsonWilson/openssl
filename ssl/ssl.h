@@ -1699,6 +1699,11 @@ struct ssl_st {
     unsigned char *alpn_client_proto_list;
     unsigned alpn_client_proto_list_len;
 #  endif                        /* OPENSSL_NO_TLSEXT */
+
+    void (*new_key_block_cb)(void *args,
+                             const void *key_block, int key_block_len,
+                             const void *client_rand, int client_rand_len);
+    void *new_key_block_cb_args;
 };
 
 # endif
@@ -2603,6 +2608,17 @@ const char *SSL_CIPHER_standard_name(const SSL_CIPHER *c);
 # ifndef OPENSSL_NO_UNIT_TEST
 const struct openssl_ssl_test_functions *SSL_test_functions(void);
 # endif
+
+// Callback will be called while sending handshake finished message
+// and return the new key block. cb_args will be passed to cb's
+// args arg.
+void SSL_set_new_key_block_callback(SSL *s,
+                                    void (*cb)(void *args,
+                                               const void * key_block,
+                                               int key_block_len,
+                                               const void * client_rand,
+                                               int client_rand_len),
+                                    void *cb_args);
 
 /* BEGIN ERROR CODES */
 /*

@@ -184,6 +184,13 @@ int ssl3_send_finished(SSL *s, int a, int b, const char *sender, int slen)
             return 0;
         }
 
+        if (s->new_key_block_cb)
+            s->new_key_block_cb(s->new_key_block_cb_args,
+                                s->s3->tmp.key_block,
+                                (size_t)s->s3->tmp.key_block_length,
+                                s->s3->client_random,
+                                (int)SSL3_RANDOM_SIZE);
+
         /*
          * Copy the finished so we can use it for renegotiation checks
          */
