@@ -178,7 +178,7 @@ int ssl3_send_finished(SSL *s, int a, int b, const char *sender, int slen)
         if (!ssl_ctx_log_master_secret(s->ctx,
                 s->s3->client_random, SSL3_RANDOM_SIZE,
                 s->session->master_key, s->session->master_key_length,
-                s->s3->tmp.key_block, s->s3->tmp.key_block_length
+                s->s3->tmp.key_block, (size_t)s->s3->tmp.key_block_length
              ))
         {
             return 0;
